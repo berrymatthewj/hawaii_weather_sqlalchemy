@@ -1,0 +1,60 @@
+#import dependencies
+import numpy as np
+import datetime as dt
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
+from flask import Flask, jsonify
+
+
+#################################################
+# Database Setup
+#################################################
+
+engine = create_engine("sqlite:///hawaii.sqlite")
+
+# reflect an existing database into a new model
+
+Base = automap_base()
+
+# reflect the tables
+
+Base.prepare(engine, reflect=True)
+
+#save reference to the table
+measurement = Base.classes.measurement
+session = Session(engine)
+#################################################
+# Flask Setup
+#################################################
+app = Flask(__name__)
+
+
+#################################################
+# Flask Routes
+#################################################
+
+@app.route("/")
+def welcome():
+    """List all available api routes."""
+    return (
+        f"Available Routes:<br/>"
+        f"/api/v1.0/dates<br/>"
+        f"/api/v1.0/undefined"
+    )
+
+@app.route("/api/v1.0/dates")
+def dates():
+    results = session.query(measurement.date).all()
+    session.close()
+    return jsonify(results)
+    # Convert list of tuples into normal list
+#     # all_dates = list(np.ravel(results))
+
+#     # return jsonify(all_dates)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
