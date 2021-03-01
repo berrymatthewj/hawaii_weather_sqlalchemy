@@ -44,11 +44,14 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/<start>/<end>"
+        f"/api/v1.0/start_date-format:YYYY-MM-DD<br/>"
+        f"/api/v1.0/start_date/end_date-format:YYYY-MM-DD"
     )
 
+#Convert the query results to a dictionary using date as the key and prcp as the value.
 @app.route("/api/v1.0/precipitation")
 def precipitation():
+    # Get query results
     session = Session(engine)
     last_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
     query_date = dt.date(2017, 8, 23) - dt.timedelta(days=365)
@@ -62,9 +65,11 @@ def precipitation():
         precip_dict["date"] = date
         precip_dict["prcp"] = prcp
         precip_data.append(precip_dict)
-    
+
+    # Return the JSON representation of your dictionary.
     return jsonify(precip_data)
 
+# Return a JSON list of stations from the dataset.
 @app.route("/api/v1.0/stations")
 def stations():
     session = Session(engine)
@@ -73,6 +78,7 @@ def stations():
 
     return jsonify(results)
 
+# Query the dates and temperature observations of the most active station for the last year of data.
 @app.route("/api/v1.0/tobs")
 def tobs():
     session = Session(engine)
@@ -81,13 +87,16 @@ def tobs():
     results = session.query(Measurement.tobs).filter(Measurement.date >= query_date).filter(Measurement.station=="USC00519281").all()
     session.close()
 
+#Return a JSON list of temperature observations (TOBS) for the previous year.
+
     return jsonify(results)
+
+# Return a JSON list of the minimum temperature, the average temperature, and the max temperature for a given start or start-end range.
 
 @app.route('/api/v1.0/<start>', defaults={'end': None})
 @app.route("/api/v1.0/<start>/<end>")
 def temperature_stats(start,end):
     session = Session(engine)
-    # sel=[func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)]
     if end !=None:
         results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
             filter(Measurement.date >= start).filter(
