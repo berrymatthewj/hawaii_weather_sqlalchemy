@@ -84,15 +84,20 @@ def tobs():
     return jsonify(results)
 
 @app.route("/api/v1.0/<start>/<end>")
-def temperature(start=None,end=None):
+def temperature_stats(start=None,end=None):
     session = Session(engine)
-    if end==None:
-        results = session.query(func.min(Measurement.tobs).filter(Measurement.date >= start).filter(Measurement.station=="USC00519281"),func.max(Measurement.tobs).filter(Measurement.date >= start).filter(Measurement.station=="USC00519281"),func.avg(Measurement.tobs).filter(Measurement.date >= start).filter(Measurement.station=="USC00519281")).all()
-    else:
-        results = session.query(func.min(Measurement.tobs).filter(Measurement.date >= start).filter(Measurement.station=="USC00519281"),func.max(Measurement.tobs).filter(Measurement.date >= start).filter(Measurement.station=="USC00519281"),func.avg(Measurement.tobs).filter(Measurement.date >= start,Measurement.date <= end).filter(Measurement.station=="USC00519281")).all()
-    session.close()
+    sel=[func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)]
+    
+    if not end:
+        results = session.query(*sel).filter(Measurement.date >= start).all()
+        temps=list(np.ravel(results))
+        return jsonify(results)
 
+    results=session.query(*sel).filter(Measurement.date >= start).filter(Measurement.date <= end).all()
+    temps=list(np.ravel(results))
     return jsonify(results)
+
+    session.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
