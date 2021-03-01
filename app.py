@@ -83,21 +83,35 @@ def tobs():
 
     return jsonify(results)
 
+@app.route('/api/v1.0/<start>', defaults={'end': None})
 @app.route("/api/v1.0/<start>/<end>")
-def temperature_stats(start=None,end=None):
+def temperature_stats(start,end):
     session = Session(engine)
-    sel=[func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)]
-    
-    if not end:
-        results = session.query(*sel).filter(Measurement.date >= start).all()
+    # sel=[func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)]
+    if end !=None:
+        results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+            filter(Measurement.date >= start).filter(
+                Measurement.date <= end).all()
+    else:
+        results=session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+           filter(Measurement.date >= start).all()
+        
         temps=list(np.ravel(results))
         return jsonify(results)
-
-    results=session.query(*sel).filter(Measurement.date >= start).filter(Measurement.date <= end).all()
-    temps=list(np.ravel(results))
-    return jsonify(results)
-
+    
     session.close()
+    temperature_list=[]
+    no_temperature_data = False
+    for min_temp, avg_temp, max_temp in results:
+        if min_temp == None or avg_temp == None or max_temp == None:
+            no_temperature_data = True
+        temperature_list.append(min_temp)
+        temperature_list.append(avg_temp)
+        temperature_list.append(max_temp)
+        if no_temperature_data == True:
+            return f"No temperature data found for the given date range. Try another date range."
+        else:
+            return jsonify(temperature_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
